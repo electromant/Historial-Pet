@@ -71,11 +71,18 @@
       </form>
     </section>
 
-    <!-- Sección de Búsqueda y Resultados -->
+   <!-- Sección de Búsqueda y Filtros -->
     <section class="card-search">
       <h2>🔍 Buscar Paciente o Historial Clínico</h2>
       <div class="search-box">
         <input type="text" id="input-busqueda" placeholder="Buscar por Nombre, Propietario o N° Radicado...">
+        <select id="filtro-tipo">
+          <option value="">Todos los tipos</option>
+          <option value="Perro">Perro</option>
+          <option value="Gato">Gato</option>
+          <option value="Ave">Ave</option>
+          <option value="Otro">Otro</option>
+        </select>
         <button id="btn-buscar" class="btn-secondary">Buscar</button>
       </div>
 
