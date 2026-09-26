@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial Pet - Gestión Clínica Veterinaria</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="logo">
+      🐾 <h1>Historial Pet</h1>
+    </div>
+    <p class="tagline">Sistema de Registro e Historial Clínico Veterinario</p>
+  </header>
+
+  <main class="container">
+
+    <!-- Formulario de Registro de Pacientes -->
+    <section class="card-form">
+      <h2>📋 Registro de Ingreso de Paciente</h2>
+      <form id="form-paciente">
+        <div class="form-group">
+          <label for="nombre_mascota">Nombre de la Mascota *</label>
+          <input type="text" id="nombre_mascota" required placeholder="Ej. Firulais">
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tipo_animal">Tipo de Animal *</label>
+            <select id="tipo_animal" required>
+              <option value="">Seleccione...</option>
+              <option value="Perro">Perro</option>
+              <option value="Gato">Gato</option>
+              <option value="Ave">Ave</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="raza">Raza</label>
+            <input type="text" id="raza" placeholder="Ej. Criollo, Labrador">
+          </div>
+
+          <div class="form-group">
+            <label for="edad_anos">Edad (Años)</label>
+            <input type="number" id="edad_anos" min="0" placeholder="Ej. 3">
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nombre_propietario">Nombre del Propietario *</label>
+            <input type="text" id="nombre_propietario" required placeholder="Ej. Carlos Pérez">
+          </div>
+
+          <div class="form-group">
+            <label for="telefono_propietario">Teléfono de Contacto</label>
+            <input type="tel" id="telefono_propietario" placeholder="Ej. 3001234567">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="foto_mascota">Foto de la Mascota</label>
+          <input type="file" id="foto_mascota" accept="image/*">
+        </div>
+
+        <button type="submit" id="btn-guardar" class="btn-primary">Guardar e Ingresar Paciente</button>
+      </form>
+    </section>
+
+    <!-- Sección de Búsqueda y Resultados -->
+    <section class="card-search">
+      <h2>🔍 Buscar Paciente o Historial Clínico</h2>
+      <div class="search-box">
+        <input type="text" id="input-busqueda" placeholder="Buscar por Nombre, Propietario o N° Radicado...">
+        <button id="btn-buscar" class="btn-secondary">Buscar</button>
+      </div>
+
+      <div id="contenedor-pacientes" class="grid-pacientes">
+        <p class="loading-text">Cargando lista de pacientes...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Ventana de Historial Clínico -->
+  <div id="modal-historial" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="cerrar-modal">&times;</span>
+      <h2 id="modal-titulo-paciente">Historial Clínico</h2>
+
+      <!-- Formulario para agregar una nueva consulta -->
+      <form id="form-consulta" class="sub-form">
+        <input type="hidden" id="paciente-id-actual">
+        <h3>➕ Agregar Consulta Médica</h3>
+        <div class="form-group">
+          <label for="motivo_consulta">Motivo de Consulta *</label>
+          <input type="text" id="motivo_consulta" required placeholder="Ej. Vacunación, Fiebre, Control">
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="diagnostico">Diagnóstico</label>
+            <input type="text" id="diagnostico" placeholder="Ej. Infección leve">
+          </div>
+
+          <div class="form-group">
+            <label for="veterinario">Veterinario Tratante</label>
+            <input type="text" id="veterinario" placeholder="Ej. Dr. Ramírez">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tratamiento">Tratamiento o Medicación</label>
+          <textarea id="tratamiento" rows="3" placeholder="Ej. Amoxicilina cada 12 hrs por 5 días"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">Registrar Consulta</button>
+      </form>
+
+      <hr class="divider">
+
+      <h3>📋 Consultas Anteriores</h3>
+      <div id="lista-historial-clinico">
+        <p>Cargando historial...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
