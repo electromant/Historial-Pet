@@ -1,142 +1,352 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Historial Pet - Gestión Clínica Veterinaria</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial Pet - Gestión Clínica Veterinaria</title>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #2e7d32;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .card h2, .card h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #444;
+        }
+
+        input, select, textarea {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #1b5e20;
+        }
+
+        .btn-secondary {
+            background-color: #0288d1;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #01579b;
+        }
+
+        .btn-clear {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-clear:hover {
+            background-color: #b71c1c;
+        }
+
+        /* Buscador */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-container input {
+            flex: 2;
+            min-width: 200px;
+        }
+
+        .search-container select {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        /* Grid de Tarjetas de Pacientes */
+        .pacientes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .paciente-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify: space-between;
+        }
+
+        .paciente-card h3 {
+            color: #1b5e20;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .paciente-card p {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        /* Vista de Detalle */
+        .detalle-header {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .acciones-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .acciones-form button {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .item-historial {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #2e7d32;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
 
-  <header class="navbar">
-    <div class="logo">
-      🐾 <h1>Historial Pet</h1>
+    <div class="container">
+        <header>
+            <h1>🐾 Historial Pet</h1>
+            <p>Sistema de Gestión Clínica Veterinaria</p>
+        </header>
+
+        <!-- ================= VISTA PRINCIPAL ================= -->
+        <div id="vista-principal">
+            
+            <!-- FORMULARIO DE REGISTRO DE PACIENTES -->
+            <div class="card">
+                <h2>📋 Registro de Ingreso de Paciente</h2>
+                <form id="form-paciente">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nombre">Nombre de la Mascota *</label>
+                            <input type="text" id="nombre" required placeholder="Ej. Cocoliso">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tipo">Especie *</label>
+                            <select id="tipo" required>
+                                <option value="">Seleccione especie...</option>
+                                <option value="Perros">Perros</option>
+                                <option value="Gatos">Gatos</option>
+                                <option value="Aves">Aves</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="raza">Raza</label>
+                            <input type="text" id="raza" placeholder="Ej. Bulldog, Criollo...">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edad">Edad (Años)</label>
+                            <input type="number" id="edad" min="0" placeholder="Ej. 2">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="propietario">Nombre del Propietario *</label>
+                            <input type="text" id="propietario" required placeholder="Ej. Yeison Iza">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telefono">Teléfono de Contacto</label>
+                            <input type="tel" id="telefono" placeholder="Ej. 3211234456">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="foto">Foto de la Mascota</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="file" id="foto" accept="image/*">
+                                <button type="button" id="btn-limpiar-foto" class="btn-clear">Quitar Foto</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn-primary" style="width: 100%;">Guardar e Ingresar Paciente</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- BÚSQUEDA Y BUCKET DE TARJETAS -->
+            <div class="card">
+                <h2>🔍 Buscar Paciente o Historial Clínico</h2>
+                <div class="search-container">
+                    <input type="text" id="input-busqueda" placeholder="Buscar por Nombre, Propietario o N° Radicado...">
+                    <select id="filtro-tipo">
+                        <option value="todos">Todos los tipos</option>
+                        <option value="Perros">Perros</option>
+                        <option value="Gatos">Gatos</option>
+                        <option value="Aves">Aves</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <button type="button" id="btn-buscar" class="btn-secondary">Buscar</button>
+                </div>
+
+                <div id="contenedor-pacientes" class="pacientes-grid">
+                    <!-- Se cargan dinámicamente con app.js -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= VISTA DETALLE DEL PACIENTE ================= -->
+        <div id="vista-detalle" style="display: none;">
+            
+            <button id="btn-volver-inicio" class="btn-secondary" style="margin-bottom: 20px;">← Volver al Listado</button>
+
+            <!-- INFORMACIÓN DEL PACIENTE SELECCIONADO -->
+            <div class="card">
+                <div id="info-paciente-detalle" class="detalle-header">
+                    <!-- Se llena desde app.js -->
+                </div>
+            </div>
+
+            <!-- FORMULARIO DE NUEVA CONSULTA Y ORDEN MÉDICA -->
+            <div class="card">
+                <h2>📝 Registrar Nueva Consulta y Generar Orden Médica</h2>
+                <form id="form-consulta">
+                    <input type="hidden" id="paciente-id-actual">
+                    
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="motivo">Motivo / Diagnóstico *</label>
+                        <textarea id="motivo" rows="3" placeholder="Descripción del motivo de consulta o diagnóstico médico..." required></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="tratamiento">Tratamiento / Prescripción Médica *</label>
+                        <textarea id="tratamiento" rows="4" placeholder="Ej. Amoxicilina 250mg cada 12 horas por 7 días. Reposo absoluto..." required></textarea>
+                    </div>
+
+                    <div class="acciones-form">
+                        <button type="submit" class="btn-primary">💾 Guardar Consulta</button>
+                        <button type="button" id="btn-imprimir-receta" class="btn-secondary">🖨️ Imprimir Orden Médica</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- HISTORIAL CLÍNICO REGISTRADO -->
+            <div class="card">
+                <h2>📜 Historial Clínico de Consultas</h2>
+                <div id="lista-historial-clinico">
+                    <!-- Se cargan las consultas históricas -->
+                </div>
+            </div>
+
+        </div>
+
     </div>
-    <p class="tagline">Sistema de Registro e Historial Clínico Veterinario</p>
-  </header>
 
-  <main class="container">
-
-    <!-- Formulario de Registro de Pacientes -->
-    <section class="card-form">
-      <h2>📋 Registro de Ingreso de Paciente</h2>
-      <form id="form-paciente">
-        <div class="form-group">
-          <label for="nombre_mascota">Nombre de la Mascota *</label>
-          <input type="text" id="nombre_mascota" required placeholder="Ej. Firulais">
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="tipo_animal">Tipo de Animal *</label>
-            <select id="tipo_animal" required>
-              <option value="">Seleccione...</option>
-              <option value="Perro">Perro</option>
-              <option value="Gato">Gato</option>
-              <option value="Ave">Ave</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="raza">Raza</label>
-            <input type="text" id="raza" placeholder="Ej. Criollo, Labrador">
-          </div>
-
-          <div class="form-group">
-            <label for="edad_anos">Edad (Años)</label>
-            <input type="number" id="edad_anos" min="0" placeholder="Ej. 3">
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="nombre_propietario">Nombre del Propietario *</label>
-            <input type="text" id="nombre_propietario" required placeholder="Ej. Carlos Pérez">
-          </div>
-
-          <div class="form-group">
-            <label for="telefono_propietario">Teléfono de Contacto</label>
-            <input type="tel" id="telefono_propietario" placeholder="Ej. 3001234567">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="foto_mascota">Foto de la Mascota</label>
-          <input type="file" id="foto_mascota" accept="image/*">
-        </div>
-
-        <button type="submit" id="btn-guardar" class="btn-primary">Guardar e Ingresar Paciente</button>
-      </form>
-    </section>
-
-   <!-- Sección de Búsqueda y Filtros -->
-    <section class="card-search">
-      <h2>🔍 Buscar Paciente o Historial Clínico</h2>
-      <div class="search-box">
-        <input type="text" id="input-busqueda" placeholder="Buscar por Nombre, Propietario o N° Radicado...">
-        <select id="filtro-tipo">
-          <option value="">Todos los tipos</option>
-          <option value="Perro">Perro</option>
-          <option value="Gato">Gato</option>
-          <option value="Ave">Ave</option>
-          <option value="Otro">Otro</option>
-        </select>
-        <button id="btn-buscar" class="btn-secondary">Buscar</button>
-      </div>
-
-      <div id="contenedor-pacientes" class="grid-pacientes">
-        <p class="loading-text">Cargando lista de pacientes...</p>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Modal Ventana de Historial Clínico -->
-  <div id="modal-historial" class="modal">
-    <div class="modal-content">
-      <span class="close-btn" id="cerrar-modal">&times;</span>
-      <h2 id="modal-titulo-paciente">Historial Clínico</h2>
-
-      <!-- Formulario para agregar una nueva consulta -->
-      <form id="form-consulta" class="sub-form">
-        <input type="hidden" id="paciente-id-actual">
-        <h3>➕ Agregar Consulta Médica</h3>
-        <div class="form-group">
-          <label for="motivo_consulta">Motivo de Consulta *</label>
-          <input type="text" id="motivo_consulta" required placeholder="Ej. Vacunación, Fiebre, Control">
-        </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="diagnostico">Diagnóstico</label>
-            <input type="text" id="diagnostico" placeholder="Ej. Infección leve">
-          </div>
-
-          <div class="form-group">
-            <label for="veterinario">Veterinario Tratante</label>
-            <input type="text" id="veterinario" placeholder="Ej. Dr. Ramírez">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="tratamiento">Tratamiento o Medicación</label>
-          <textarea id="tratamiento" rows="3" placeholder="Ej. Amoxicilina cada 12 hrs por 5 días"></textarea>
-        </div>
-
-        <button type="submit" class="btn-primary">Registrar Consulta</button>
-      </form>
-
-      <hr class="divider">
-
-      <h3>📋 Consultas Anteriores</h3>
-      <div id="lista-historial-clinico">
-        <p>Cargando historial...</p>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+    <!-- Cargar archivo JavaScript de la aplicación -->
+    <script src="app.js"></script>
 </body>
 </html>
