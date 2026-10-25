@@ -4,32 +4,18 @@ const SUPABASE_ANON_KEY = "sb_publishable_TjF0NPwZR2bFW0mJzjNpFA_3212xMPo";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Referencias de Portada y Navegación
-const vistaPortada = document.getElementById("vista-portada");
-const btnEntrarSistema = document.getElementById("btn-entrar-sistema");
-const btnVolverPortada = document.getElementById("btn-volver-portada");
-
-// Entrar al sistema desde la portada
-btnEntrarSistema?.addEventListener("click", () => {
-    if (vistaPortada) vistaPortada.style.display = "none";
-    if (vistaPrincipal) vistaPrincipal.style.display = "block";
-    cargarPacientes();
-});
-
-// Regresar a la portada
-btnVolverPortada?.addEventListener("click", () => {
-    if (vistaPrincipal) vistaPrincipal.style.display = "none";
-    if (vistaDetalle) vistaDetalle.style.display = "none";
-    if (vistaPortada) vistaPortada.style.display = "flex";
-});
-
 // Variables Globales de Estado
 let pacienteSeleccionado = null;
 let consultasGuardadasMap = new Map();
 
 // Referencias de Vistas
+const vistaPortada = document.getElementById("vista-portada");
 const vistaPrincipal = document.getElementById("vista-principal");
 const vistaDetalle = document.getElementById("vista-detalle");
+
+// Botones de Navegación
+const btnEntrarSistema = document.getElementById("btn-entrar-sistema");
+const btnVolverPortada = document.getElementById("btn-volver-portada");
 const btnVolverInicio = document.getElementById("btn-volver-inicio");
 
 // Elementos de la Vista Principal
@@ -45,10 +31,19 @@ const formConsulta = document.getElementById("form-consulta");
 const pacienteIdActual = document.getElementById("paciente-id-actual");
 const listaHistorialClinico = document.getElementById("lista-historial-clinico");
 
-// Inicialización
-document.addEventListener("DOMContentLoaded", cargarPacientes);
-
 // NAVEGACIÓN ENTRE VISTAS
+btnEntrarSistema?.addEventListener("click", () => {
+    if (vistaPortada) vistaPortada.style.display = "none";
+    if (vistaPrincipal) vistaPrincipal.style.display = "block";
+    cargarPacientes();
+});
+
+btnVolverPortada?.addEventListener("click", () => {
+    if (vistaPrincipal) vistaPrincipal.style.display = "none";
+    if (vistaDetalle) vistaDetalle.style.display = "none";
+    if (vistaPortada) vistaPortada.style.display = "flex";
+});
+
 btnVolverInicio?.addEventListener("click", () => {
     if (vistaDetalle) vistaDetalle.style.display = "none";
     if (vistaPrincipal) vistaPrincipal.style.display = "block";
@@ -70,6 +65,14 @@ formPaciente?.addEventListener("submit", async (e) => {
 
     const radicado = Math.floor(10000 + Math.random() * 90000);
     let fotoUrl = null;
+
+    // SweetAlert: Cargando...
+    Swal.fire({
+        title: 'Registrando Paciente...',
+        text: 'Por favor espera un momento.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     try {
         if (archivoFoto) {
@@ -110,12 +113,23 @@ formPaciente?.addEventListener("submit", async (e) => {
 
         if (error) throw error;
 
-        alert(`¡Paciente registrado con éxito!\nN° de Radicado: ${radicado}`);
+        Swal.fire({
+            icon: 'success',
+            title: '¡Paciente Registrado!',
+            html: `<strong>${nombre}</strong> ingresó correctamente.<br><b>N° de Radicado:</b> ${radicado}`,
+            confirmButtonColor: '#2e7d32'
+        });
+
         formPaciente.reset();
         cargarPacientes();
     } catch (err) {
         console.error("Error al guardar paciente:", err);
-        alert(`Ocurrió un error al guardar el paciente:\n${err.message || JSON.stringify(err)}`);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al registrar',
+            text: err.message || 'Ocurrió un problema al guardar el paciente.',
+            confirmButtonColor: '#d32f2f'
+        });
     }
 });
 
@@ -196,21 +210,35 @@ async function aplicarFiltros() {
     }
 }
 
-// 4. ELIMINAR PACIENTE
+// 4. ELIMINAR PACIENTE CON CONFIRMACIÓN SWEETALERT
 window.eliminarPaciente = async function(id, nombre) {
-    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar al paciente "${nombre}"?\nEsta acción borró también sus historial de consultas.`);
-    if (!confirmacion) return;
+    const result = await Swal.fire({
+        title: `¿Eliminar a ${nombre}?`,
+        text: "Se borrará el paciente y todo su historial de consultas de forma permanente.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d32f2f',
+        cancelButtonColor: '#757575',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Eliminando...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     try {
         const idFormateado = isNaN(id) ? id : parseInt(id);
 
-        // Primero eliminar las consultas asociadas al paciente
         await supabaseClient
             .from("historial_clinico")
             .delete()
             .eq("paciente_id", idFormateado);
 
-        // Luego eliminar el paciente
         const { error } = await supabaseClient
             .from("pacientes")
             .delete()
@@ -218,11 +246,22 @@ window.eliminarPaciente = async function(id, nombre) {
 
         if (error) throw error;
 
-        alert(`El paciente "${nombre}" ha sido eliminado correctamente.`);
+        Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            text: `El paciente ${nombre} ha sido eliminado.`,
+            confirmButtonColor: '#2e7d32'
+        });
+
         cargarPacientes();
     } catch (err) {
         console.error("Error al eliminar paciente:", err);
-        alert(`Ocurrió un error al eliminar el paciente:\n${err.message || JSON.stringify(err)}`);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al eliminar',
+            text: err.message || 'No se pudo eliminar el paciente.',
+            confirmButtonColor: '#d32f2f'
+        });
     }
 };
 
@@ -275,9 +314,15 @@ formConsulta?.addEventListener("submit", async (e) => {
     const tratamientoText = document.getElementById("tratamiento").value;
 
     if (!pId) {
-        alert("Error: No se ha detectado el ID del paciente.");
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se detectó el ID del paciente.' });
         return;
     }
+
+    Swal.fire({
+        title: 'Guardando Consulta...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     try {
         const pacienteIdFormateado = isNaN(pId) ? pId : parseInt(pId);
@@ -294,13 +339,24 @@ formConsulta?.addEventListener("submit", async (e) => {
 
         if (error) throw error;
 
-        alert("¡Consulta guardada correctamente en el historial!");
+        Swal.fire({
+            icon: 'success',
+            title: '¡Consulta Guardada!',
+            text: 'La consulta médica se registró exitosamente en el historial.',
+            confirmButtonColor: '#2e7d32'
+        });
+
         document.getElementById("motivo").value = "";
         document.getElementById("tratamiento").value = "";
         cargarConsultas(pId);
     } catch (err) {
         console.error("Error al guardar consulta:", err);
-        alert(`Ocurrió un error al guardar la consulta:\n${err.message || JSON.stringify(err)}`);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al guardar',
+            text: err.message || 'No se pudo registrar la consulta.',
+            confirmButtonColor: '#d32f2f'
+        });
     }
 });
 
@@ -368,10 +424,20 @@ async function cargarConsultas(pId) {
     }
 }
 
-// 8. ELIMINAR CONSULTA
+// 8. ELIMINAR CONSULTA CON CONFIRMACIÓN SWEETALERT
 window.eliminarConsulta = async function(id) {
-    const confirmacion = confirm("¿Estás seguro de que deseas eliminar esta consulta del historial?");
-    if (!confirmacion) return;
+    const result = await Swal.fire({
+        title: '¿Eliminar consulta?',
+        text: "Se quitará este registro del historial clínico.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d32f2f',
+        cancelButtonColor: '#757575',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
         const consultaIdFormateado = isNaN(id) ? id : parseInt(id);
@@ -383,13 +449,23 @@ window.eliminarConsulta = async function(id) {
 
         if (error) throw error;
 
-        alert("Consulta eliminada correctamente del historial.");
+        Swal.fire({
+            icon: 'success',
+            title: 'Consulta Eliminada',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
         if (pacienteSeleccionado) {
             cargarConsultas(pacienteSeleccionado.id);
         }
     } catch (err) {
         console.error("Error al eliminar consulta:", err);
-        alert(`Ocurrió un error al eliminar la consulta:\n${err.message || JSON.stringify(err)}`);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'No se pudo eliminar la consulta.'
+        });
     }
 };
 
@@ -408,6 +484,12 @@ window.guardarEdicionConsulta = async function(id) {
     const nuevoMotivo = document.getElementById(`edit-motivo-${id}`).value;
     const nuevoTratamiento = document.getElementById(`edit-tratamiento-${id}`).value;
 
+    Swal.fire({
+        title: 'Actualizando...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
     try {
         const consultaIdFormateado = isNaN(id) ? id : parseInt(id);
 
@@ -421,13 +503,23 @@ window.guardarEdicionConsulta = async function(id) {
 
         if (error) throw error;
 
-        alert("¡Consulta actualizada con éxito!");
+        Swal.fire({
+            icon: 'success',
+            title: '¡Actualizado!',
+            text: 'La consulta médica ha sido actualizada.',
+            confirmButtonColor: '#2e7d32'
+        });
+
         if (pacienteSeleccionado) {
             cargarConsultas(pacienteSeleccionado.id);
         }
     } catch (err) {
         console.error("Error al actualizar la consulta:", err);
-        alert(`Ocurrió un error al actualizar:\n${err.message || JSON.stringify(err)}`);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'No se pudo actualizar la consulta.'
+        });
     }
 };
 
@@ -436,7 +528,7 @@ window.imprimirConsultaGuardada = function(id) {
     const consulta = consultasGuardadasMap.get(String(id));
 
     if (!pacienteSeleccionado || !consulta) {
-        alert("Error al obtener la información de la consulta.");
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se encontró la información de la consulta.' });
         return;
     }
 
