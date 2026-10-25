@@ -4,9 +4,28 @@ const SUPABASE_ANON_KEY = "sb_publishable_TjF0NPwZR2bFW0mJzjNpFA_3212xMPo";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Referencias de Portada y Navegación
+const vistaPortada = document.getElementById("vista-portada");
+const btnEntrarSistema = document.getElementById("btn-entrar-sistema");
+const btnVolverPortada = document.getElementById("btn-volver-portada");
+
+// Entrar al sistema desde la portada
+btnEntrarSistema?.addEventListener("click", () => {
+    if (vistaPortada) vistaPortada.style.display = "none";
+    if (vistaPrincipal) vistaPrincipal.style.display = "block";
+    cargarPacientes();
+});
+
+// Regresar a la portada
+btnVolverPortada?.addEventListener("click", () => {
+    if (vistaPrincipal) vistaPrincipal.style.display = "none";
+    if (vistaDetalle) vistaDetalle.style.display = "none";
+    if (vistaPortada) vistaPortada.style.display = "flex";
+});
+
 // Variables Globales de Estado
 let pacienteSeleccionado = null;
-let consultasGuardadasMap = new Map(); // Para almacenar temporalmente las consultas y facilitar la edición/impresión
+let consultasGuardadasMap = new Map();
 
 // Referencias de Vistas
 const vistaPrincipal = document.getElementById("vista-principal");
@@ -25,10 +44,6 @@ const infoPacienteDetalle = document.getElementById("info-paciente-detalle");
 const formConsulta = document.getElementById("form-consulta");
 const pacienteIdActual = document.getElementById("paciente-id-actual");
 const listaHistorialClinico = document.getElementById("lista-historial-clinico");
-
-// Ocultar botón antiguo de imprimir si existe en la interfaz
-const btnImprimirViejo = document.getElementById("btn-imprimir-receta");
-if (btnImprimirViejo) btnImprimirViejo.style.display = "none";
 
 // Inicialización
 document.addEventListener("DOMContentLoaded", cargarPacientes);
@@ -143,7 +158,10 @@ function renderizarPacientes(pacientes) {
             <p><strong>Radicado:</strong> ${paciente.radicado || 'N/A'}</p>
             <p><strong>Tipo:</strong> ${paciente.tipo_animal}</p>
             <p><strong>Propietario:</strong> ${paciente.nombre_propietario}</p>
-            <button class="btn-secondary" style="margin-top: 10px; width: 100%;" onclick="verHistorialDetalle('${paciente.id}')">Ver Historial Completo</button>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="btn-secondary" style="flex: 1;" onclick="verHistorialDetalle('${paciente.id}')">Ver Historial Completo</button>
+                <button class="btn-clear" style="background: #d32f2f; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;" onclick="eliminarPaciente('${paciente.id}', '${paciente.nombre_mascota}')">🗑️</button>
+            </div>
         `;
         contenedorPacientes.appendChild(card);
     });
@@ -178,7 +196,37 @@ async function aplicarFiltros() {
     }
 }
 
-// 4. ABRIR VISTA DE DETALLE DEL PACIENTE
+// 4. ELIMINAR PACIENTE
+window.eliminarPaciente = async function(id, nombre) {
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar al paciente "${nombre}"?\nEsta acción borró también sus historial de consultas.`);
+    if (!confirmacion) return;
+
+    try {
+        const idFormateado = isNaN(id) ? id : parseInt(id);
+
+        // Primero eliminar las consultas asociadas al paciente
+        await supabaseClient
+            .from("historial_clinico")
+            .delete()
+            .eq("paciente_id", idFormateado);
+
+        // Luego eliminar el paciente
+        const { error } = await supabaseClient
+            .from("pacientes")
+            .delete()
+            .eq("id", idFormateado);
+
+        if (error) throw error;
+
+        alert(`El paciente "${nombre}" ha sido eliminado correctamente.`);
+        cargarPacientes();
+    } catch (err) {
+        console.error("Error al eliminar paciente:", err);
+        alert(`Ocurrió un error al eliminar el paciente:\n${err.message || JSON.stringify(err)}`);
+    }
+};
+
+// 5. ABRIR VISTA DE DETALLE DEL PACIENTE
 window.verHistorialDetalle = async function(id) {
     try {
         const { data: paciente, error } = await supabaseClient
@@ -219,7 +267,7 @@ window.verHistorialDetalle = async function(id) {
     }
 };
 
-// 5. REGISTRAR NUEVA CONSULTA
+// 6. REGISTRAR NUEVA CONSULTA
 formConsulta?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const pId = pacienteIdActual ? pacienteIdActual.value : null;
@@ -256,7 +304,7 @@ formConsulta?.addEventListener("submit", async (e) => {
     }
 });
 
-// 6. CARGAR HISTORIAL DE CONSULTAS CON BOTONES EDITAR E IMPRIMIR
+// 7. CARGAR HISTORIAL DE CONSULTAS
 async function cargarConsultas(pId) {
     if (!listaHistorialClinico) return;
     listaHistorialClinico.innerHTML = "<p>Cargando consultas...</p>";
@@ -295,6 +343,7 @@ async function cargarConsultas(pId) {
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button type="button" class="btn-secondary" style="background: #0288d1; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="editarConsulta('${c.id}')">✏️ Editar Consulta</button>
                             <button type="button" class="btn-secondary" style="background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="imprimirConsultaGuardada('${c.id}')">🖨️ Imprimir Orden Médica</button>
+                            <button type="button" class="btn-clear" style="background: #d32f2f; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="eliminarConsulta('${c.id}')">🗑️ Eliminar</button>
                         </div>
                     </div>
 
@@ -319,7 +368,32 @@ async function cargarConsultas(pId) {
     }
 }
 
-// 7. FUNCIONES DE EDICIÓN DE CONSULTAS
+// 8. ELIMINAR CONSULTA
+window.eliminarConsulta = async function(id) {
+    const confirmacion = confirm("¿Estás seguro de que deseas eliminar esta consulta del historial?");
+    if (!confirmacion) return;
+
+    try {
+        const consultaIdFormateado = isNaN(id) ? id : parseInt(id);
+
+        const { error } = await supabaseClient
+            .from("historial_clinico")
+            .delete()
+            .eq("id", consultaIdFormateado);
+
+        if (error) throw error;
+
+        alert("Consulta eliminada correctamente del historial.");
+        if (pacienteSeleccionado) {
+            cargarConsultas(pacienteSeleccionado.id);
+        }
+    } catch (err) {
+        console.error("Error al eliminar consulta:", err);
+        alert(`Ocurrió un error al eliminar la consulta:\n${err.message || JSON.stringify(err)}`);
+    }
+};
+
+// 9. EDICIÓN DE CONSULTAS
 window.editarConsulta = function(id) {
     document.getElementById(`contenido-consulta-${id}`).style.display = "none";
     document.getElementById(`form-edicion-${id}`).style.display = "block";
@@ -357,7 +431,7 @@ window.guardarEdicionConsulta = async function(id) {
     }
 };
 
-// 8. IMPRIMIR ORDEN MÉDICA DESDE EL HISTORIAL
+// 10. IMPRIMIR ORDEN MÉDICA
 window.imprimirConsultaGuardada = function(id) {
     const consulta = consultasGuardadasMap.get(String(id));
 
